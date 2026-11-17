@@ -1,0 +1,7 @@
+data/raw/
+__pycache__/
+*.pyc
+.pytest_cache/
+*.egg-info/
+results/acceptance/*.log
+results/sim/*.log

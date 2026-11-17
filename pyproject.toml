@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "stale-kv"
+version = "0.1.0"
+description = "Draft on invalidated KV while the exact prefill runs: an open, laptop-scale take on Callo (arXiv 2611.18459)"
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.10"
+dependencies = ["numpy>=1.26", "torch>=2.6", "transformers>=5.0"]
+
+[project.optional-dependencies]
+data = ["pyarrow>=15"]
+figures = ["matplotlib>=3.8"]
+test = ["pytest>=8"]
+
+[tool.setuptools]
+packages = ["stale_kv"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
