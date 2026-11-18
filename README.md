@@ -70,7 +70,7 @@ Fixed-tie and any-max verification agree everywhere here, because logits are kep
   where the top-2 logits are within 0.5 of each other; the paper reports 60%.
 - **The exact-KV ceiling.** Drafting on the *exact* KV and verifying in one chunk keeps the whole window
   73–85% of the time, against the paper's 80%. Those misses are numerical, and most sit at near ties:
-  92% (0.6B) and 57% (1.7B) of them are at logit gaps below 0.1.
+  92% (0.6B L5) and 57% (1.7B L5) of them are at logit gaps below 0.1.
 - **The baselines lose by a mile.** Prompt-lookup n-grams and drafting on the valid prefix alone accept
   0.4–0.7 and 0.6–1.5 tokens on average, against 11.5–16.6 for stale KV.
 
@@ -81,7 +81,7 @@ window compounds that gap: 0.945³² is about 16%. Two things explain most of it
 - **The chat template.** Qwen3 writes an empty `<think>` block in front of every reply it generates,
   then leaves it out when the reply reappears in history. So the last reply's KV is stale even before any
   masking. Putting the reply in the invalidated state the way later prompts render it lifts 0.6B L5 from
-  19% to 36% whole windows, and per-position agreement from 94.5% to 97.2%
+  19% to 36% whole windows, and per-position agreement from 94.7% to 97.2% on the same 100 requests
   ([Ablations](#ablations)).
 - **Model size.** The two small models fail differently. The 0.6B model sits in a near tie at 15% of
   positions, six times the paper's rate. The 1.7B model has fewer near ties (4–6%), but it disagrees more
@@ -96,7 +96,7 @@ acceptance reaches the paper's level somewhere between 2B and 24B is not somethi
 ![accepted length](docs/figures/accepted_length.png)
 
 Share of miss requests whose first k drafts were all accepted, with drafting capped at 111 tokens (the
-paper's online cap). Stale KV gets 46% as many accepted drafts as exact KV in the first 32 positions and
+paper's online cap). For 0.6B L5, stale KV gets 46% as many accepted drafts as exact KV in the first 32 positions and
 29% over 111. Drafting on the valid prefix alone collapses within a few tokens, because the model has lost
 the last four observations.
 
@@ -149,8 +149,8 @@ Both ablations use Qwen3-0.6B at L5 and are compared with the default run on the
 | logits rounded to bf16, fixed-tie verification | 60 | 20% / 65% | 12.9 / 25.1 |
 | logits rounded to bf16, any-max verification | 60 | 30% / 83% | |
 
-With the reply rendered as later prompts render it, teacher-forced agreement rises from 94.5% to 97.2%
-(the paper: 98.3%), and mean accepted drafts at the 111-token cap go from 17.8 to 29.7.
+With the reply rendered as later prompts render it, teacher-forced agreement on the same 100 requests rises from 94.7% to 97.2%
+(the paper: 98.3%), and mean accepted drafts at the 111-token cap go from 17.2 to 29.7.
 
 <a id="numerics"></a>**Numerics.** In bf16, logits near 20 are 0.125 apart. Two numerically different forward
 passes (one token at a time, then one verification chunk) therefore often land on exact ties or one-step
@@ -231,7 +231,7 @@ cache with nothing stale equals an exact prefill.
   recorded each model's own SWE-agent sessions on SWE-bench Verified.
 - **Models:** Qwen3-0.6B and Qwen3-1.7B in bf16, non-thinking mode, on one RTX 5060 Laptop GPU (8 GB).
   The paper used Llama-3.3-70B FP8, Gemma-4-31B and Mistral-Small-3.2-24B on H200s.
-- **Context cap:** prompts of at most 8,192 tokens, which is 74% of L5 misses and 47% of L10 misses.
+- **Context cap:** prompts of at most 8,192 tokens, about 74% of L5 misses and 47% of L10 misses (estimated on 120 sessions).
   Sampling is therefore tilted toward earlier, shorter parts of sessions.
 - **Alignment:** the paper does not give a minimum run length; this repo uses 16.
 - **"Valid prefix only":** our reading of the paper's "target model with only the valid prefix" baseline.
