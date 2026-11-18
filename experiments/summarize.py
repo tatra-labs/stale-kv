@@ -174,17 +174,21 @@ def figures(all_recs):
     fig.savefig(figdir / "gap_table.png", dpi=160)
     plt.close(fig)
 
-    # 4. Staleness grows with how much the edit removed.
+    # 4. Edit size vs acceptance (Spearman per run; the plot shows the 0.6B L5 pair).
     fig, ax = plt.subplots(figsize=(6.4, 3.2))
-    for n, c in zip(runs, ["#f58518", "#e45756", "#4c78a8", "#72b7b2"]):
-        recs = all_recs[n]
+    pair = [("Qwen3-0.6B-L5", "default", "#f58518"), ("Qwen3-0.6B-L5-asrendered", "reply as later prompts render it", "#4c78a8")]
+    keys = {r["key"] for r in all_recs.get("Qwen3-0.6B-L5-asrendered", [])}
+    for n, label, c in pair:
+        recs = [r for r in all_recs.get(n, []) if r["key"] in keys]
+        if not recs:
+            continue
         drop = np.array([r["dropped_old"] for r in recs])
         acc = np.array([min(r["stale"]["a_fixed"], 32) for r in recs])
         edges = np.quantile(drop, [0, 0.25, 0.5, 0.75, 1.0])
         idx = np.clip(np.searchsorted(edges, drop, side="right") - 1, 0, 3)
-        ax.plot(range(4), [acc[idx == q].mean() for q in range(4)], "o-", color=c, label=n.replace("Qwen3-", ""))
+        ax.plot(range(4), [acc[idx == q].mean() for q in range(4)], "o-", color=c, label=f"0.6B L5, {label}")
     ax.set_xticks(range(4), ["smallest", "2nd", "3rd", "largest"])
-    ax.set_xlabel("quartile of invalidated tokens dropped by the edit")
+    ax.set_xlabel("quartile of invalidated tokens dropped by the edit (same 100 requests)")
     ax.set_ylabel("stale drafts accepted\n(of the first 32)")
     ax.legend(fontsize=7, frameon=False)
     ax.spines[["top", "right"]].set_visible(False)
@@ -205,11 +209,13 @@ def figures(all_recs):
             for j, src in enumerate(srcs):
                 vals = [next(r["speedup_miss"] for r in sim["rows"] if r["load"] == ld and r["acceptance"] == src)
                         for ld in loads]
-                ax.bar(np.arange(3) + (j - (len(srcs) - 1) / 2) * w, vals, w, label=src.replace("Qwen3-", ""))
+                model, method = src.split(":")
+                label = f"{model.split('-')[1]} {'stale KV' if method == 'stale' else 'exact KV (upper bound)'}"
+                ax.bar(np.arange(3) + (j - (len(srcs) - 1) / 2) * w, vals, w, label=label)
             ax.axhline(1.0, color="#555555", lw=0.8)
             ax.set_xticks(range(3), loads)
             ax.set_title(f"SWE-agent L{L} (modelled)", fontsize=9)
-            ax.set_ylim(0.95, max(1.1, ax.get_ylim()[1]))
+            ax.set_ylim(0.95, max(1.1, ax.get_ylim()[1] + 0.01))
             ax.spines[["top", "right"]].set_visible(False)
         axes[0].set_ylabel("miss-request latency, plain / Callo")
         axes[-1].legend(fontsize=6, frameon=False)
@@ -246,6 +252,14 @@ def main():
     for n in names:
         print(n, "gap table", summary[n]["gap_table"])
         print(n, "early stop", summary[n]["early_stop"])
+    # Does acceptance fall with the size of the span the edit removed? Spearman per run.
+    from scipy.stats import spearmanr
+
+    for n, recs in all_recs.items():
+        if len(recs) >= 20:
+            rho, pv = spearmanr([r["dropped_old"] for r in recs], [min(r["stale"]["a_fixed"], 32) for r in recs])
+            summary[n]["spearman_dropped_vs_accepted32"] = {"rho": float(rho), "p": float(pv)}
+            print(n, f"dropped vs accepted@32: Spearman rho {rho:.3f}, p {pv:.3f}")
     # Ablations, compared with their base run on the requests both contain.
     for abl, base in ABLATIONS.items():
         if not all_recs.get(abl):

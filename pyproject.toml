@@ -13,7 +13,7 @@ dependencies = ["numpy>=1.26", "torch>=2.6", "transformers>=5.0"]
 
 [project.optional-dependencies]
 data = ["pyarrow>=15"]
-figures = ["matplotlib>=3.8"]
+figures = ["matplotlib>=3.8", "scipy>=1.11"]
 test = ["pytest>=8"]
 
 [tool.setuptools]

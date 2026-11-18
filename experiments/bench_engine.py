@@ -1,4 +1,4 @@
-"""Time this repo's engine on the local GPU and fit a step model for the simulator's laptop scenario.
+"""Time this repo's engine on the local GPU and try to fit a step model to it.
 
     python experiments/bench_engine.py --model Qwen/Qwen3-0.6B
 
@@ -6,8 +6,11 @@ Measures single-token drafting steps (CUDA graph replay) against context length 
 against chunk size and prior context, then fits
     decode step:  t = a0 + a_c * ctx / 1000
     chunk:        t = b0 + b_tok * c + 1e-6 * (b_x * c * x + b_c * c^2 / 2)
-in milliseconds. The engine runs one request at a time, so nothing here measures batching; the
-laptop scenario uses a batch limit of 1.
+in milliseconds. The engine runs one request at a time, so nothing here measures batching.
+
+On the laptop behind the README this fit is not usable: each eager forward costs ~90 ms of Python and
+kernel-launch overhead whatever its size, graph-replayed decode steps took 27-50 ms with other jobs on
+the GPU, and the fitted slopes come out negative. The simulator therefore uses the paper's H200 fit.
 """
 
 from __future__ import annotations

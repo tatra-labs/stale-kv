@@ -1,8 +1,7 @@
 """A discrete-event model of one prefill (P) and one decode (D) instance, with and without Callo.
 
 Everything this module reports is *modelled*. Step times come from a fitted cost model (the paper's
-Eq. 2 for Llama-3.3-70B FP8 on H200, or a fit to this repo's laptop engine); draft acceptance is
-replayed from measured records. Simplifications against the paper's simulator: one P and one D
+Eq. 2 for Llama-3.3-70B FP8 on H200); draft acceptance is replayed from measured records. Simplifications against the paper's simulator: one P and one D
 instance, FIFO prefill with whole 8,192-token chunks, a fixed per-transfer bandwidth (no link
 sharing), closed-loop sessions with a fixed tool time, and yielding that parks the most recently
 admitted speculator first.
